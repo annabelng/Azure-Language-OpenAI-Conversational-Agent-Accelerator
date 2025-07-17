@@ -100,7 +100,6 @@ def uvicorn_server() -> Generator:
 @pytest.mark.parametrize("test_case", TEST_CASES, ids=lambda x: x["name"])
 def test_chat_endpoint(uvicorn_server: str, test_case: dict):
     """Test chat endpoint responses"""
-
     # Create formatted string for input
     formatted_string = f"current question: {test_case["current_question"]}, history: {test_case["history"]}"
     print(formatted_string)

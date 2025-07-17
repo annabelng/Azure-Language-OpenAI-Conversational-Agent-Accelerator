@@ -37,8 +37,7 @@ def create_tools(config):
 
     clu_api_tool = OpenApiTool(
         name="clu_api",
-        spec=clu_openapi_spec,
-        description= "This tool is used to extract intents and entities",
+        spec=clu_openapi_spec,description= "This tool is used to extract intents and entities",
         auth=auth
     )
 
