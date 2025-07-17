@@ -58,21 +58,6 @@ if missing_agents:
     logging.error(error_msg)
     raise ValueError(error_msg)
 
-# Check if all required agent IDs are present
-required_agents = [
-    "TRIAGE_AGENT_ID",
-    "HEAD_SUPPORT_AGENT_ID", 
-    "ORDER_STATUS_AGENT_ID",
-    "ORDER_CANCEL_AGENT_ID",
-    "ORDER_REFUND_AGENT_ID"
-]
-
-missing_agents = [agent for agent in required_agents if not AGENT_IDS.get(agent)]
-if missing_agents:
-    error_msg = f"Missing required agent IDs: {', '.join(missing_agents)}"
-    logging.error(error_msg)
-    raise ValueError(error_msg)
-
 DIST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "dist"))
 # log dist_dir
 print(f"DIST_DIR: {DIST_DIR}")
