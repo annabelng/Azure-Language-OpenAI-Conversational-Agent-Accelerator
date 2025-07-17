@@ -3,7 +3,6 @@
 import os
 import json
 import logging
-from json import JSONDecodeError
 import pii_redacter
 from fastapi import FastAPI, HTTPException
 from fastapi.concurrency import asynccontextmanager
@@ -15,7 +14,6 @@ from azure.identity.aio import DefaultAzureCredential
 from semantic_kernel.agents import AzureAIAgent
 from utils import get_azure_credential
 from aoai_client import AOAIClient, get_prompt
-
 from azure.search.documents import SearchClient
 
 # Run locally with `uvicorn app:app --reload --host 127.0.0.1 --port 7000`
@@ -130,52 +128,38 @@ async def orchestrate_chat(message: str, orchestrator: SemanticKernelOrchestrato
                 cache=True
             )
 
-        # Extract utterances
-        print(f"Extracting utterances from message: {message}")
-        utterances = extract_client.chat_completion(message)
-        print(f"Utterances: {utterances}")
+        try:
+            # Reconstruct PII if needed
+            if PII_ENABLED:
+                utterance = pii_redacter.reconstruct(
+                    text=message,
+                    id=chat_id,
+                    cache=True
+                )
 
-        if not isinstance(utterances, list):
-            try:
-                utterances = json.loads(utterances)
-            except JSONDecodeError:
-                logging.warning("Failed to parse utterances, possibly harmful content")
-                return ['I am unable to process this request.']
+            # Try semantic kernel orchestration first
+            orchestrator = app.state.orchestrator
+            response = await orchestrator.process_message(utterance)
+            
+            if isinstance(response, dict) and response.get("error"):
+                # If semantic kernel fails, use fallback
+                print(f"Semantic kernel failed, using fallback for: {utterance}")
+                response = fallback_function(
+                    utterance,
+                    "en",  # Assuming English for simplicity, adjust as needed
+                    chat_id
+                )
+                responses.append(response)
+            else:
+                responses.append(response)
 
-        # Process each utterance
-        for utterance in utterances:
-            try:
-                # Reconstruct PII if needed
-                if PII_ENABLED:
-                    utterance = pii_redacter.reconstruct(
-                        text=utterance,
-                        id=chat_id,
-                        cache=True
-                    )
-
-                # Try semantic kernel orchestration first
-                orchestrator = app.state.orchestrator
-                response = await orchestrator.process_message(utterance)
-                
-                if isinstance(response, dict) and response.get("error"):
-                    # If semantic kernel fails, use fallback
-                    print(f"Semantic kernel failed, using fallback for: {utterance}")
-                    response = fallback_function(
-                        utterance,
-                        "en",  # Assuming English for simplicity, adjust as needed
-                        chat_id
-                    )
-                    responses.append(response)
-                else:
-                    responses.append(response)
-
-            except Exception as e:
-                logging.error(f"Error processing utterance: {e}")
-                responses.append("I encountered an error processing part of your message.")
+        except Exception as e:
+            logging.error(f"Error processing utterance: {e}")
+            responses.append("I encountered an error processing part of your message.")
 
     except Exception as e:
         logging.error(f"Error in message processing: {e}")
-        responses = ["I apologize, but I'm having trouble processing your request."]
+        responses = ["I apologize, but I'm having trouble processing your request. Please try again."]
 
     finally:
         # Clean up PII cache if enabled
@@ -216,11 +200,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logging.error(f"Error during setup: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
-    finally:
-        # Teardown
-        await client.__aexit__(None, None, None)
-        await creds.__aexit__(None, None, None)
 
 # Create FastAPI app with lifespan
 app = FastAPI(lifespan=lifespan)
