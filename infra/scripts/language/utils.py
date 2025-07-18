@@ -1,5 +1,6 @@
 import re
 
+
 def bind_parameters(input_string: str, parameters: dict) -> str:
     """
     Replace occurrences of '${key}' in the input string with the value of the key in the parameters dictionary.

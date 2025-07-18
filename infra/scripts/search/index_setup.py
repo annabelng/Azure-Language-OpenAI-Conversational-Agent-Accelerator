@@ -27,6 +27,7 @@ from azure.search.documents.indexes.models import (
     FieldMapping
 )
 
+
 def get_azure_credential():
     use_mi_auth = os.environ.get('USE_MI_AUTH', 'false').lower() == 'true'
 
@@ -37,6 +38,7 @@ def get_azure_credential():
         )
 
     return DefaultAzureCredential()
+
 
 aoai_endpoint = os.environ['AOAI_ENDPOINT']
 embedding_deployment_name = os.environ['EMBEDDING_DEPLOYMENT_NAME']
@@ -108,7 +110,7 @@ data_source = indexer_client.create_or_update_data_source_connection(data_source
 print(f"Data source '{data_source.name}' created or updated")
 
 # Chunking:
-split_skill = SplitSkill(  
+split_skill = SplitSkill(
     description="Split skill to chunk documents",
     text_split_mode="pages",
     context="/document",

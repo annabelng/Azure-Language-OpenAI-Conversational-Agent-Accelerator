@@ -1,8 +1,8 @@
 import json
 import os
 from azure.ai.agents import AgentsClient
-from azure.ai.agents.models import OpenApiTool, OpenApiManagedAuthDetails,OpenApiManagedSecurityScheme
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.ai.agents.models import OpenApiTool, OpenApiManagedAuthDetails, OpenApiManagedSecurityScheme
+from azure.identity import DefaultAzureCredential
 from utils import bind_parameters
 
 config = {}
@@ -27,6 +27,7 @@ agents_client = AgentsClient(
     api_version="2025-05-15-preview"
 )
 
+
 def create_tools(config):
     # Set up the auth details for the OpenAPI connection
     auth = OpenApiManagedAuthDetails(security_scheme=OpenApiManagedSecurityScheme(audience="https://cognitiveservices.azure.com/"))
@@ -38,7 +39,7 @@ def create_tools(config):
     clu_api_tool = OpenApiTool(
         name="clu_api",
         spec=clu_openapi_spec,
-        description= "This tool is used to extract intents and entities",
+        description="This tool is used to extract intents and entities",
         auth=auth
     )
 
@@ -50,11 +51,12 @@ def create_tools(config):
     cqa_api_tool = OpenApiTool(
         name="cqa_api",
         spec=cqa_openapi_spec,
-        description= "An API to get answer to questions related to business operation",
+        description="An API to get answer to questions related to business operation",
         auth=auth
     )
 
     return clu_api_tool, cqa_api_tool
+
 
 with agents_client:
     # If DELETE_OLD_AGENTS is set to true, delete all existing agents in the project
@@ -80,7 +82,7 @@ with agents_client:
     ---
     Available Tools:
     ---
-    To use the CLU API: 
+    To use the CLU API:
     You must convert the input JSON into the following clu_api request format. You MUST keep the parameters field in the payload - this is extremely critical. Do NOT put analysisInput inside the parameters field. You must not add any additional fields. You must use the api version of 2025-05-15-preview - this is EXTREMELY CRITICAL as a query parameter (?api-version=2025-05-15-preview)
     No matter what, you must always use the "api-version": "2025-05-15-preview"
     payload = {
@@ -108,7 +110,7 @@ with agents_client:
             ]
         }
     }
-    Use all history messages followed by the current question in the conversationItems array, with unique increasing IDs. 
+    Use all history messages followed by the current question in the conversationItems array, with unique increasing IDs.
     Return the raw API response in this format:
     {
     "type": "clu_result",
@@ -118,7 +120,7 @@ with agents_client:
     ---
     When you return answers from the cqa_api, format the response as JSON: {"type": "cqa_result", "response": {cqa_response}, "terminated": "True"} where cqa_response is the full JSON API response from the cqa_api without rewriting or removing any info. Return immediately
     ---
-    Do not: 
+    Do not:
     - Modify or summarize the API responses.
     - Embed the full input as a flat string.
 
@@ -129,11 +131,11 @@ with agents_client:
     triage_agent_definition = agents_client.create_agent(
         model=MODEL_NAME,
         name=TRIAGE_AGENT_NAME,
-        instructions= TRIAGE_AGENT_INSTRUCTIONS,
+        instructions=TRIAGE_AGENT_INSTRUCTIONS,
         tools=clu_api_tool.definitions + cqa_api_tool.definitions,
         temperature=0.2,
         )
-    
+
     # 2) Create the head support agent which takes in CLU intents and entities and routes the request to the appropriate support agent
     HEAD_SUPPORT_AGENT_NAME = "HeadSupportAgent"
     HEAD_SUPPORT_AGENT_INSTRUCTIONS = """
@@ -210,12 +212,12 @@ with agents_client:
     try:
         # Ensure the config directory exists
         os.makedirs(CONFIG_DIR, exist_ok=True)
-        
+
         with open(config_file, 'w') as f:
             json.dump(agent_ids, f, indent=2)
         print(f"Agent IDs written to {config_file}")
-        print(json.dumps(agent_ids, indent=2))  
+        print(json.dumps(agent_ids, indent=2))
+
     except Exception as e:
         print(f"Error writing to {config_file}: {e}")
-        print(json.dumps(agent_ids, indent=2)) 
-        
+        print(json.dumps(agent_ids, indent=2))
