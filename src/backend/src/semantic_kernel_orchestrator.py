@@ -15,8 +15,72 @@ from azure.ai.projects import AIProjectClient
 # Define the confidence threshold for CLU intent recognition
 confidence_threshold = float(os.environ.get("CLU_CONFIDENCE_THRESHOLD", "0.5"))
 
+# Custom functions to route messages from specific roles / agents
+def route_user_message(participant_descriptions: dict) -> StringResult:
+    try:
+        return StringResult(
+            result=next((agent for agent in participant_descriptions.keys() if agent == "TriageAgent"), None),
+            reason="Routing to TriageAgent for initial triage."
+        )
+    except Exception as e:
+        return StringResult(
+            result=None,
+            reason=f"Error routing to TriageAgent: {e}"
+        )
+    
+def route_triage_message(last_message: ChatMessageContent, participant_descriptions: dict) -> StringResult:
+    try:
+        parsed = json.loads(last_message.content)
+        # Handle CQA results
+        if parsed.get("type") == "cqa_result":
+            print("[SYSTEM]: CQA result received, determining final response...")
+            return StringResult(
+                result=None,
+                reason="CQA result received, terminating chat."
+            )
+
+        # Handle CLU results
+        if parsed.get("type") == "clu_result":
+            print("[SYSTEM]: CLU result received, checking intent, entities, and confidence...")
+            intent = parsed["response"]["result"]["conversations"][0]["intents"][0]["name"]
+            print("[TriageAgent]: Detected Intent:", intent, "routing to HeadSupportAgent for custom agent selection...")
+            return StringResult(
+                result=next((agent for agent in participant_descriptions.keys() if agent == "HeadSupportAgent"), None),
+                reason="Routing to HeadSupportAgent for custom agent selection."
+            )
+
+    # Handle errors in triage agent response 
+    except Exception as e:
+        print(f"[SYSTEM]: Error processing TriageAgent message: {e}")
+        return StringResult(
+            result=None,
+            reason="Error processing TriageAgent message."
+        )
+    
+def route_head_support_message(last_message: ChatMessageContent, participant_descriptions: dict) -> StringResult:
+    try:
+        # Grab the target agent from the parsed content 
+        parsed = json.loads(last_message.content)
+        route = parsed.get("target_agent")
+
+        print("[HeadSupportAgent] Routing to target custom agent:", route)
+        return StringResult(
+            result=next((agent for agent in participant_descriptions.keys() if agent == route), None),
+            reason=f"Routing to target custom agent: {route}."
+        )
+    except Exception as e:
+        print(f"[SYSTEM]: Error processing HeadSupportAgent message: {e}")
+        return StringResult(
+            result=None,
+            reason="Error processing HeadSupportAgent message."
+        )
+
 class CustomGroupChatManager(GroupChatManager):
-    # Custom logic for filtering results in the group chat
+    """
+    Custom group chat manager for Semantic Kernel Group Chat Orchestration.
+    You must override the methods to implement custom logic for agent selection, termination, and message filtering.
+    """
+    # Filtering results in the group chat
     async def filter_results(self, chat_history: ChatHistory) -> MessageResult:
         if not chat_history:
             return MessageResult(
@@ -37,7 +101,7 @@ class CustomGroupChatManager(GroupChatManager):
         return BooleanResult(result=False, reason="No user input required.")
 
     # Function to create custom agent selection methods
-    async def select_next_agent(self, chat_history, participant_descriptions):
+    async def select_next_agent(self, chat_history: ChatHistory, participant_descriptions: dict) -> StringResult:
         """
         Multi-agent orchestration method for Semantic Kernel Agent Group Chat.
         This method decides how to select the next agent based on the current message and agent with custom logic based on agent responses.
@@ -47,89 +111,18 @@ class CustomGroupChatManager(GroupChatManager):
 
         # Process user messages
         if not last_message or last_message.role == AuthorRole.USER:
-
-            if len(chat_history) == 1:
-                print("[SYSTEM]: Last message is from the USER, routing to TriageAgent for initial triage...")
-                
-                try:
-                    return StringResult(
-                        result=next((agent for agent in participant_descriptions.keys() if agent == "TriageAgent"), None),
-                        reason="Routing to TriageAgent for initial triage."
-                    )
-                except Exception as e:
-                    print(f"[SYSTEM]: Error routing to TriageAgent, returning None. Exception: {e}")
-                    return StringResult(
-                        result=None,
-                        reason="Error routing to TriageAgent."
-                    )
-            else:
-                print("[SYSTEM]: Last message is from the USER, routing back to custom agent...")
-                
-                # If the last message is from the user, route to the last agent that responded
-                last_agent = chat_history[-2].name if len(chat_history) > 1 else None
-                if last_agent and last_agent in participant_descriptions:
-                    print(f"[SYSTEM]: Routing back to last agent: {last_agent}")
-                    return StringResult(
-                        result=last_agent,
-                        reason=f"Routing back to last agent: {last_agent}."
-                    )
-                else:
-                    print("[SYSTEM]: No valid last agent found, returning None.")
-                    return StringResult(
-                        result=None,
-                        reason="No valid last agent found."
-                    )
+            print("[SYSTEM]: Last message is from the USER, routing to TriageAgent for initial triage...")
+            return route_user_message(participant_descriptions)
     
         # Process triage agent messages
         elif last_message.name == "TriageAgent":
             print("[SYSTEM]: Last message is from TriageAgent, checking if agent returned a CQA or CLU result...")
-            try:
-                parsed = json.loads(last_message.content)
-                # Handle CQA results
-                if parsed.get("type") == "cqa_result":
-                    print("[SYSTEM]: CQA result received, determining final response...")
-                    return StringResult(
-                        result=None,
-                        reason="CQA result received, terminating chat."
-                    )
-    
-                # Handle CLU results
-                if parsed.get("type") == "clu_result":
-                    print("[SYSTEM]: CLU result received, checking intent, entities, and confidence...")
-                    intent = parsed["response"]["result"]["conversations"][0]["intents"][0]["name"]
-                    print("[TriageAgent]: Detected Intent:", intent)
-                    print("[TriageAgent]: Identified Intent and Entities, routing to HeadSupportAgent for custom agent selection...")
-                    return StringResult(
-                        result=next((agent for agent in participant_descriptions.keys() if agent == "HeadSupportAgent"), None),
-                        reason="Routing to HeadSupportAgent for custom agent selection."
-                    )
-
-            except Exception as e:
-                print(f"[SYSTEM]: Error processing TriageAgent message: {e}")
-                return StringResult(
-                    result=None,
-                    reason="Error processing TriageAgent message."
-                )
+            return route_triage_message(last_message, participant_descriptions)
     
         # Process head support agent messages
         elif last_message.name == "HeadSupportAgent":
             print("[SYSTEM]: Last message is from HeadSupportAgent, choosing custom agent...")
-            try:
-                parsed = json.loads(last_message.content)
-    
-                # Grab the target agent from the parsed content
-                route = parsed.get("target_agent")
-                print("[HeadSupportAgent] Routing to target custom agent:", route)
-                return StringResult(
-                    result=next((agent for agent in participant_descriptions.keys() if agent == route), None),
-                    reason=f"Routing to target custom agent: {route}."
-                )
-            except Exception as e:
-                print(f"[SYSTEM]: Error processing HeadSupportAgent message: {e}")
-                return StringResult(
-                    result=None,
-                    reason="Error processing HeadSupportAgent message."
-                )
+            return route_head_support_message(last_message, participant_descriptions)
     
         # Default case
         print("[SYSTEM]: No valid routing logic found, returning None.")
