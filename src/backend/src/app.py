@@ -35,13 +35,13 @@ else:
     AGENT_IDS = {}
 
 # Comment out for local testing:
-# AGENT_IDS = {
-#     "TRIAGE_AGENT_ID": os.environ.get("TRIAGE_AGENT_ID"),
-#     "HEAD_SUPPORT_AGENT_ID": os.environ.get("HEAD_SUPPORT_AGENT_ID"),
-#     "ORDER_STATUS_AGENT_ID": os.environ.get("ORDER_STATUS_AGENT_ID"),
-#     "ORDER_CANCEL_AGENT_ID": os.environ.get("ORDER_CANCEL_AGENT_ID"),
-#     "ORDER_REFUND_AGENT_ID": os.environ.get("ORDER_REFUND_AGENT_ID"),
-# }
+AGENT_IDS = {
+    "TRIAGE_AGENT_ID": os.environ.get("TRIAGE_AGENT_ID"),
+    "HEAD_SUPPORT_AGENT_ID": os.environ.get("HEAD_SUPPORT_AGENT_ID"),
+    "ORDER_STATUS_AGENT_ID": os.environ.get("ORDER_STATUS_AGENT_ID"),
+    "ORDER_CANCEL_AGENT_ID": os.environ.get("ORDER_CANCEL_AGENT_ID"),
+    "ORDER_REFUND_AGENT_ID": os.environ.get("ORDER_REFUND_AGENT_ID"),
+}
 
 # Check if all required agent IDs are present
 required_agents = [
@@ -130,28 +130,27 @@ async def orchestrate_chat(message: str, orchestrator: SemanticKernelOrchestrato
 
         try:
             # Reconstruct PII if needed
-            if PII_ENABLED:
-                utterance = pii_redacter.reconstruct(
-                    text=message,
-                    id=chat_id,
-                    cache=True
-                )
+            # if PII_ENABLED:
+            #     utterance = pii_redacter.reconstruct(
+            #         text=message,
+            #         id=chat_id,
+            #         cache=True
+            #     )
 
             # Try semantic kernel orchestration first
             orchestrator = app.state.orchestrator
-            response = await orchestrator.process_message(utterance)
+            response = await orchestrator.process_message(message)
             
             if isinstance(response, dict) and response.get("error"):
                 # If semantic kernel fails, use fallback
-                print(f"Semantic kernel failed, using fallback for: {utterance}")
+                print(f"Semantic kernel failed, using fallback for: {message}")
                 response = fallback_function(
-                    utterance,
+                    message,
                     "en",  # Assuming English for simplicity, adjust as needed
                     chat_id
                 )
-                responses.append(response)
-            else:
-                responses.append(response)
+            
+            responses.append(response)
 
         except Exception as e:
             logging.error(f"Error processing utterance: {e}")

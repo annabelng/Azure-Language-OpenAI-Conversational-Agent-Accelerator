@@ -53,8 +53,8 @@ class CustomGroupChatManager(GroupChatManager):
                 
                 try:
                     return StringResult(
-                    result=next((agent for agent in participant_descriptions.keys() if agent == "TriageAgent"), None),
-                    reason="Routing to TriageAgent for initial triage."
+                        result=next((agent for agent in participant_descriptions.keys() if agent == "TriageAgent"), None),
+                        reason="Routing to TriageAgent for initial triage."
                     )
                 except Exception as e:
                     print(f"[SYSTEM]: Error routing to TriageAgent, returning None. Exception: {e}")
@@ -85,7 +85,6 @@ class CustomGroupChatManager(GroupChatManager):
             print("[SYSTEM]: Last message is from TriageAgent, checking if agent returned a CQA or CLU result...")
             try:
                 parsed = json.loads(last_message.content)
-    
                 # Handle CQA results
                 if parsed.get("type") == "cqa_result":
                     print("[SYSTEM]: CQA result received, determining final response...")
@@ -220,7 +219,7 @@ class SemanticKernelOrchestrator:
         order_status_agent = AzureAIAgent(
             client=self.client,
             definition=order_status_agent_definition,
-            description="An agent that checks order status and it must use the OrderStatusPlugin to check the status of an order. If you need more information from the user, you must return a response with 'need_more_info': 'True', otherwise you must return 'need_more_info': 'False'. You must return the response in the following valid JSON format: {'response': <OrderStatusResponse>, 'terminated': 'True', 'need_more_info': <'True' or 'False'>}",
+            description="An agent that checks order status",
             plugins=[OrderStatusPlugin()],
         )
 
@@ -228,7 +227,7 @@ class SemanticKernelOrchestrator:
         order_cancel_agent = AzureAIAgent(
             client=self.client,
             definition=order_cancel_agent_definition,
-            description="An agent that checks on cancellations and it must use the OrderCancellationPlugin to handle order cancellation requests. If you need more information from the user, you must return a response with 'need_more_info': 'True', otherwise you must return 'need_more_info': 'False'. You must return the response in the following valid JSON format: {'response': <OrderCancellationResponse>, 'terminated': 'True', 'need_more_info': <'True' or 'False'>}",
+            description="An agent that checks on cancellations",
             plugins=[OrderCancellationPlugin()],
         )
 
@@ -236,7 +235,7 @@ class SemanticKernelOrchestrator:
         order_refund_agent = AzureAIAgent(
             client=self.client,
             definition=order_refund_agent_definition,
-            description="An agent that checks on refunds and it must use the OrderRefundPlugin to handle order refund requests. If you need more information from the user, you must return a response with 'need_more_info': 'True', otherwise you must return 'need_more_info': 'False'. You must return the response in the following valid JSON format: {'response': <OrderRefundResponse>, 'terminated': 'True', 'need_more_info': <'True' or 'False'>}",
+            description="An agent that checks on refunds",
             plugins=[OrderRefundPlugin()],
         )
 
@@ -244,7 +243,7 @@ class SemanticKernelOrchestrator:
         head_support_agent = AzureAIAgent(
             client=self.client,
             definition=head_support_agent_definition,
-            description="A head support agent that routes inquiries to the proper custom agent. Ensure you do not use any special characters in the JSON response, as this will cause the agent to fail. The response must be a valid JSON object.",
+            description="A head support agent that routes inquiries to the proper custom agent.",
         )
 
         print("Agents initialized successfully.")
