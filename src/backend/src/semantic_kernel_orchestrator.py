@@ -15,6 +15,7 @@ from azure.ai.projects import AIProjectClient
 # Define the confidence threshold for CLU intent recognition
 confidence_threshold = float(os.environ.get("CLU_CONFIDENCE_THRESHOLD", "0.5"))
 
+
 # Custom functions to route messages from specific roles / agents
 def route_user_message(participant_descriptions: dict) -> StringResult:
     try:
@@ -27,7 +28,8 @@ def route_user_message(participant_descriptions: dict) -> StringResult:
             result=None,
             reason=f"Error routing to TriageAgent: {e}"
         )
-    
+
+
 def route_triage_message(last_message: ChatMessageContent, participant_descriptions: dict) -> StringResult:
     try:
         parsed = json.loads(last_message.content)
@@ -49,17 +51,18 @@ def route_triage_message(last_message: ChatMessageContent, participant_descripti
                 reason="Routing to HeadSupportAgent for custom agent selection."
             )
 
-    # Handle errors in triage agent response 
+    # Handle errors in triage agent response
     except Exception as e:
         print(f"[SYSTEM]: Error processing TriageAgent message: {e}")
         return StringResult(
             result=None,
             reason="Error processing TriageAgent message."
         )
-    
+
+
 def route_head_support_message(last_message: ChatMessageContent, participant_descriptions: dict) -> StringResult:
     try:
-        # Grab the target agent from the parsed content 
+        # Grab the target agent from the parsed content
         parsed = json.loads(last_message.content)
         route = parsed.get("target_agent")
 
@@ -74,6 +77,7 @@ def route_head_support_message(last_message: ChatMessageContent, participant_des
             result=None,
             reason="Error processing HeadSupportAgent message."
         )
+
 
 class CustomGroupChatManager(GroupChatManager):
     """
@@ -95,7 +99,7 @@ class CustomGroupChatManager(GroupChatManager):
             result=ChatMessageContent(role="assistant", content=last_message.content),
             reason="Returning the last agent's response."
         )
-    
+
     # Custom logic to decide if user input is needed
     async def should_request_user_input(self, chat_history: ChatHistory) -> BooleanResult:
         return BooleanResult(result=False, reason="No user input required.")
@@ -113,17 +117,17 @@ class CustomGroupChatManager(GroupChatManager):
         if not last_message or last_message.role == AuthorRole.USER:
             print("[SYSTEM]: Last message is from the USER, routing to TriageAgent for initial triage...")
             return route_user_message(participant_descriptions)
-    
+
         # Process triage agent messages
         elif last_message.name == "TriageAgent":
             print("[SYSTEM]: Last message is from TriageAgent, checking if agent returned a CQA or CLU result...")
             return route_triage_message(last_message, participant_descriptions)
-    
+
         # Process head support agent messages
         elif last_message.name == "HeadSupportAgent":
             print("[SYSTEM]: Last message is from HeadSupportAgent, choosing custom agent...")
             return route_head_support_message(last_message, participant_descriptions)
-    
+
         # Default case
         print("[SYSTEM]: No valid routing logic found, returning None.")
         return StringResult(
@@ -144,13 +148,13 @@ class CustomGroupChatManager(GroupChatManager):
                 result=False,
                 reason="No messages in chat history."
             )
-        
+
         # Check if the last message contains termination or need_more_info flags
         try:
             parsed_content = json.loads(last_message.content)
             terminated = parsed_content.get("terminated") == "True"
             need_more_info = parsed_content.get("need_more_info") == "True"
-    
+
             if terminated or need_more_info:
                 return BooleanResult(
                     result=True,
@@ -161,13 +165,14 @@ class CustomGroupChatManager(GroupChatManager):
                 result=False,
                 reason="Failed to parse last message content."
             )
-    
+
         # Default case: no termination
         return BooleanResult(
             result=False,
             reason="No termination flags found in last message."
         )
-        
+
+
 # Custom multi-agent semantic kernel orchestrator
 class SemanticKernelOrchestrator:
     def __init__(
@@ -296,7 +301,7 @@ class SemanticKernelOrchestrator:
                         final_response = final_response['response']['answers'][0]['answer']
                         print("[SYSTEM]: Final response is ", final_response)
                         return final_response
-                    
+
                     # if CLU
                     else:
                         print("[SYSTEM]: Final CLU result received, printing custom agent response...")
@@ -321,6 +326,7 @@ class SemanticKernelOrchestrator:
             return {
                 "error": f"An error occurred: {last_exception}"
             }
+
 
 def format_agent_response(response):
     try:

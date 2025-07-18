@@ -6,6 +6,8 @@ from semantic_kernel.functions import kernel_function
 Sample plugin for returning order status in a customer support system - this plugin states order status
 and is used with a chat completion agent in a handoff orchestration system.
 """
+
+
 class OrderStatusPlugin:
     @kernel_function
     def check_order_status(self, order_id: str) -> str:

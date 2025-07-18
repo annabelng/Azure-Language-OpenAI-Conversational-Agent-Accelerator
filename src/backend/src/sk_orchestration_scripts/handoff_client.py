@@ -34,15 +34,18 @@ AGENT_IDS = {
 # Define the confidence threshold for CLU intent recognition
 confidence_threshold = float(os.environ.get("CLU_CONFIDENCE_THRESHOLD", "0.5"))
 
+
 def human_response_function() -> ChatMessageContent:
     """Observer function to print the messages from the agents."""
     user_input = input("User: ")
     return ChatMessageContent(role=AuthorRole.USER, content=user_input)
 
+
 def agent_response_callback(message: ChatMessageContent) -> None:
     if message.content == "":
         return
     print(f"{message.name}: {message.content}")
+
 
 # sample reference for creating an Azure AI agent
 async def main():

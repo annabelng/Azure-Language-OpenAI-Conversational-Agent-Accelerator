@@ -6,7 +6,7 @@ import sys
 import subprocess
 import requests
 import time
-from typing import Generator, List
+from typing import Generator
 
 # Run tests with `pytest test_chat.py -s -v`
 
@@ -64,6 +64,7 @@ TEST_CASES = [
     }
 ]
 
+
 # Launch the FastAPI server using uvicorn for testing purposes
 @pytest.fixture(scope="session")
 def uvicorn_server() -> Generator:
@@ -89,12 +90,13 @@ def uvicorn_server() -> Generator:
             break
         except requests.ConnectionError:
             time.sleep(1)
-    
+
     yield url  # Return the server URL for tests to use
-    
+
     # Cleanup
     process.terminate()
     process.wait()
+
 
 # Test the chat endpoint with parameterized test cases
 @pytest.mark.parametrize("test_case", TEST_CASES, ids=lambda x: x["name"])
@@ -110,11 +112,11 @@ def test_chat_endpoint(uvicorn_server: str, test_case: dict):
         json={"message": formatted_string},
         timeout=180
     )
-    
+
     # Check response
     assert response.status_code == 200, f"Expected status 200, got {response.status_code}"
     data = response.json()
-    
+
     # Verify response
     assert data["messages"] == test_case["expected_response"], (
         f"Response mismatch for test '{test_case['name']}'. "

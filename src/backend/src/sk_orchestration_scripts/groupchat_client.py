@@ -36,6 +36,7 @@ AGENT_IDS = {
 # Define the confidence threshold for CLU intent recognition
 confidence_threshold = float(os.environ.get("CLU_CONFIDENCE_THRESHOLD", "0.5"))
 
+
 class CustomGroupChatManager(GroupChatManager):
     async def filter_results(self, chat_history: ChatHistory) -> MessageResult:
         if not chat_history:
@@ -92,11 +93,11 @@ class CustomGroupChatManager(GroupChatManager):
 
             if len(chat_history) == 1:
                 print("[SYSTEM]: Last message is from the USER, routing to TriageAgent for initial triage...")
-                
+
                 try:
                     return StringResult(
-                    result=next((agent for agent in participant_descriptions.keys() if agent == "TriageAgent"), None),
-                    reason="Routing to TriageAgent for initial triage."
+                        result=next((agent for agent in participant_descriptions.keys() if agent == "TriageAgent"), None),
+                        reason="Routing to TriageAgent for initial triage."
                     )
                 except Exception as e:
                     print(f"[SYSTEM]: Error routing to TriageAgent, returning None. Exception: {e}")
@@ -106,7 +107,7 @@ class CustomGroupChatManager(GroupChatManager):
                     )
             else:
                 print("[SYSTEM]: Last message is from the USER, routing back to custom agent...")
-                
+
                 # If the last message is from the user, route to the last agent that responded
                 last_agent = chat_history[-2].name if len(chat_history) > 1 else None
                 if last_agent and last_agent in participant_descriptions:
@@ -121,13 +122,13 @@ class CustomGroupChatManager(GroupChatManager):
                         result=None,
                         reason="No valid last agent found."
                     )
-    
+
         # Process triage agent messages
         elif last_message.name == "TriageAgent":
             print("[SYSTEM]: Last message is from TriageAgent, checking if agent returned a CQA or CLU result...")
             try:
                 parsed = json.loads(last_message.content)
-    
+
                 # Handle CQA results
                 if parsed.get("type") == "cqa_result":
                     print("[SYSTEM]: CQA result received, determining final response...")
@@ -135,7 +136,7 @@ class CustomGroupChatManager(GroupChatManager):
                         result=None,
                         reason="CQA result received, terminating chat."
                     )
-    
+
                 # Handle CLU results
                 if parsed.get("type") == "clu_result":
                     print("[SYSTEM]: CLU result received, checking intent, entities, and confidence...")
@@ -153,13 +154,13 @@ class CustomGroupChatManager(GroupChatManager):
                     result=None,
                     reason="Error processing TriageAgent message."
                 )
-    
+
         # Process head support agent messages
         elif last_message.name == "HeadSupportAgent":
             print("[SYSTEM]: Last message is from HeadSupportAgent, choosing custom agent...")
             try:
                 parsed = json.loads(last_message.content)
-    
+
                 # Grab the target agent from the parsed content
                 route = parsed.get("target_agent")
                 print("[HeadSupportAgent] Routing to target custom agent:", route)
@@ -173,7 +174,7 @@ class CustomGroupChatManager(GroupChatManager):
                     result=None,
                     reason="Error processing HeadSupportAgent message."
                 )
-    
+
         # Default case
         print("[SYSTEM]: No valid routing logic found, returning None.")
         return StringResult(
@@ -194,13 +195,13 @@ class CustomGroupChatManager(GroupChatManager):
                 result=False,
                 reason="No messages in chat history."
             )
-        
+
         # Check if the last message contains termination or need_more_info flags
         try:
             parsed_content = json.loads(last_message.content)
             terminated = parsed_content.get("terminated") == "True"
             need_more_info = parsed_content.get("need_more_info") == "True"
-    
+
             if terminated or need_more_info:
                 return BooleanResult(
                     result=True,
@@ -211,21 +212,24 @@ class CustomGroupChatManager(GroupChatManager):
                 result=False,
                 reason="Failed to parse last message content."
             )
-    
+
         # Default case: no termination
         return BooleanResult(
             result=False,
             reason="No termination flags found in last message."
         )
 
+
 async def human_response_function(chat_histoy: ChatHistory) -> ChatMessageContent:
     """Function to get user input."""
     user_input = input("User: ")
     return ChatMessageContent(role=AuthorRole.USER, content=user_input)
 
+
 def agent_response_callback(message: ChatMessageContent) -> None:
     """Observer function to print the messages from the agents."""
     print(f"**{message.name}**\n{message.content}")
+
 
 # sample reference for creating an Azure AI agent
 async def main():
@@ -236,15 +240,14 @@ async def main():
             triage_agent = AzureAIAgent(
                 client=client,
                 definition=triage_agent_definition,
-                #description=""
-                description="A triage agent that routes inquiries to the proper custom agent and you must actually call the API tool. The response must be a valid JSON object.",
+                description="A triage agent that routes inquiries to the proper custom agent",
             )
 
             order_status_agent_definition = await client.agents.get_agent(AGENT_IDS["ORDER_STATUS_AGENT_ID"])
             order_status_agent = AzureAIAgent(
                 client=client,
                 definition=order_status_agent_definition,
-                description="An agent that checks order status and it must use the OrderStatusPlugin to check the status of an order. If you need more information from the user, you must return a JSON response with 'need_more_info': 'True', otherwise you must return 'need_more_info': 'False'. You must return the response in the following valid JSON format: {'response': <OrderStatusResponse>, 'terminated': 'True', 'need_more_info': <'True' or 'False'>}",
+                description="An agent that checks order status",
                 plugins=[OrderStatusPlugin()],
             )
 
@@ -252,7 +255,7 @@ async def main():
             order_cancel_agent = AzureAIAgent(
                 client=client,
                 definition=order_cancel_agent_definition,
-                description="An agent that checks on cancellations and it must use the OrderCancellationPlugin to handle order cancellation requests. If you need more information from the user, you must return a response with 'need_more_info': 'True', otherwise you must return 'need_more_info': 'False'. You must return the response in the following valid JSON format: {'response': <OrderCancellationResponse>, 'terminated': 'True', 'need_more_info': <'True' or 'False'>}",
+                description="An agent that checks on cancellations",
                 plugins=[OrderCancellationPlugin()],
             )
 
@@ -260,7 +263,7 @@ async def main():
             order_refund_agent = AzureAIAgent(
                 client=client,
                 definition=order_refund_agent_definition,
-                description="An agent that checks on refunds and it must use the OrderRefundPlugin to handle order refund requests. If you need more information from the user, you must return a JSON response with 'need_more_info': 'True', otherwise you must return 'need_more_info': 'False'. You must return the response in the following valid JSON format: {'response': <OrderRefundResponse>, 'terminated': 'True', 'need_more_info': <'True' or 'False'>}",
+                description="An agent that checks on refunds",
                 plugins=[OrderRefundPlugin()],
             )
 
@@ -268,7 +271,7 @@ async def main():
             head_support_agent = AzureAIAgent(
                 client=client,
                 definition=head_support_agent_definition,
-                description="A head support agent that routes inquiries to the proper custom agent. Ensure you do not use any special characters in the JSON response, as this will cause the agent to fail. The response must be a valid JSON object.",
+                description="A head support agent that routes inquiries to the proper custom agent.",
             )
 
             print("Agents initialized successfully.")
@@ -294,7 +297,6 @@ async def main():
 
                 try:
                     task_string = "current question: order id 123, history: user - I want to check on an order, system - Please provide more information about your order so I can better assist you."
-                    
                     print(task_string)
 
                     orchestration_result = await orchestration.invoke(
@@ -321,6 +323,7 @@ async def main():
             else:
                 print(f"[FAILURE]: Max retries ({3}) reached. No successful response.")
 
+
 def format_agent_response(response):
     try:
         # Pretty print the JSON response
@@ -330,6 +333,7 @@ def format_agent_response(response):
         # Fallback to regular print if content is not JSON
         print(f"[{response.name if response.name else 'USER'}]: {response.content}\n")
     return response.content
+
 
 if __name__ == "__main__":
     asyncio.run(main())

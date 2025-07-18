@@ -21,6 +21,12 @@ from azure.search.documents import SearchClient
 # from dotenv import load_dotenv
 # load_dotenv()
 
+
+# Initialize structure for holding chat requests
+class ChatRequest(BaseModel):
+    message: str
+
+
 # Environment variables
 PROJECT_ENDPOINT = os.environ.get("AGENTS_PROJECT_ENDPOINT")
 MODEL_NAME = os.environ.get("AOAI_DEPLOYMENT")
@@ -35,18 +41,18 @@ else:
     AGENT_IDS = {}
 
 # Comment out for local testing:
-AGENT_IDS = {
-    "TRIAGE_AGENT_ID": os.environ.get("TRIAGE_AGENT_ID"),
-    "HEAD_SUPPORT_AGENT_ID": os.environ.get("HEAD_SUPPORT_AGENT_ID"),
-    "ORDER_STATUS_AGENT_ID": os.environ.get("ORDER_STATUS_AGENT_ID"),
-    "ORDER_CANCEL_AGENT_ID": os.environ.get("ORDER_CANCEL_AGENT_ID"),
-    "ORDER_REFUND_AGENT_ID": os.environ.get("ORDER_REFUND_AGENT_ID"),
-}
+# AGENT_IDS = {
+#     "TRIAGE_AGENT_ID": os.environ.get("TRIAGE_AGENT_ID"),
+#     "HEAD_SUPPORT_AGENT_ID": os.environ.get("HEAD_SUPPORT_AGENT_ID"),
+#     "ORDER_STATUS_AGENT_ID": os.environ.get("ORDER_STATUS_AGENT_ID"),
+#     "ORDER_CANCEL_AGENT_ID": os.environ.get("ORDER_CANCEL_AGENT_ID"),
+#     "ORDER_REFUND_AGENT_ID": os.environ.get("ORDER_REFUND_AGENT_ID"),
+# }
 
 # Check if all required agent IDs are present
 required_agents = [
     "TRIAGE_AGENT_ID",
-    "HEAD_SUPPORT_AGENT_ID", 
+    "HEAD_SUPPORT_AGENT_ID",
     "ORDER_STATUS_AGENT_ID",
     "ORDER_CANCEL_AGENT_ID",
     "ORDER_REFUND_AGENT_ID"
@@ -62,8 +68,6 @@ DIST_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "dist"))
 # log dist_dir
 print(f"DIST_DIR: {DIST_DIR}")
 
-class ChatRequest(BaseModel):
-    message: str
 
 # Initialize the Azure Search client
 search_client = SearchClient(
@@ -94,6 +98,7 @@ extract_client = AOAIClient(
 PII_ENABLED = os.environ.get("PII_ENABLED", "false").lower() == "true"
 print(f"PII_ENABLED: {PII_ENABLED}")
 
+
 # Fallback function (RAG) definition:
 def fallback_function(
     query: str,
@@ -114,6 +119,7 @@ def fallback_function(
 
     return rag_client.chat_completion(query)
 
+
 # Function to handle processing and orchestrating a chat message with utterance extraction, fallback handling, and PII redaction
 async def orchestrate_chat(message: str, orchestrator: SemanticKernelOrchestrator, chat_id: int) -> list[str]:
     responses = []
@@ -129,18 +135,9 @@ async def orchestrate_chat(message: str, orchestrator: SemanticKernelOrchestrato
             )
 
         try:
-            # Reconstruct PII if needed
-            # if PII_ENABLED:
-            #     utterance = pii_redacter.reconstruct(
-            #         text=message,
-            #         id=chat_id,
-            #         cache=True
-            #     )
-
             # Try semantic kernel orchestration first
             orchestrator = app.state.orchestrator
             response = await orchestrator.process_message(message)
-            
             if isinstance(response, dict) and response.get("error"):
                 # If semantic kernel fails, use fallback
                 print(f"Semantic kernel failed, using fallback for: {message}")
@@ -149,7 +146,6 @@ async def orchestrate_chat(message: str, orchestrator: SemanticKernelOrchestrato
                     "en",  # Assuming English for simplicity, adjust as needed
                     chat_id
                 )
-            
             responses.append(response)
 
         except Exception as e:
@@ -164,14 +160,15 @@ async def orchestrate_chat(message: str, orchestrator: SemanticKernelOrchestrato
         # Clean up PII cache if enabled
         if PII_ENABLED:
             pii_redacter.remove(id=chat_id)
-
     return responses
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Setup app
     try:
         logging.basicConfig(level=logging.WARNING)
+
         print("Setting up Azure credentials and client...")
         print(f"Using PROJECT_ENDPOINT: {PROJECT_ENDPOINT}")
         print(f"Using MODEL_NAME: {MODEL_NAME}")
@@ -179,11 +176,11 @@ async def lifespan(app: FastAPI):
         async with DefaultAzureCredential(exclude_interactive_browser_credential=False) as creds:
             async with AzureAIAgent.create_client(credential=creds, endpoint=PROJECT_ENDPOINT) as client:
                 orchestrator = SemanticKernelOrchestrator(
-                    client, 
-                    MODEL_NAME, 
-                    PROJECT_ENDPOINT, 
-                    AGENT_IDS, 
-                    fallback_function, 
+                    client,
+                    MODEL_NAME,
+                    PROJECT_ENDPOINT,
+                    AGENT_IDS,
+                    fallback_function,
                     3
                 )
                 await orchestrator.create_agent_group_chat()
@@ -211,6 +208,7 @@ app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), na
 async def serve_frontend():
     return FileResponse(os.path.join(DIST_DIR, "index.html"))
 
+
 # Define the chat endpoint
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -219,7 +217,7 @@ async def chat_endpoint(request: ChatRequest):
         orchestrator = app.state.orchestrator
         responses = await orchestrate_chat(request.message, orchestrator, chat_id=0)
         return JSONResponse(content={"messages": responses}, status_code=200)
-    
+
     except Exception as e:
         logging.error(f"Error in chat endpoint: {e}")
         return JSONResponse(
