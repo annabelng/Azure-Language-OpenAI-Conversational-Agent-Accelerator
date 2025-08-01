@@ -100,9 +100,9 @@ def orchestrate_chat(message: str) -> list[str]:
         try:
             utterances = json.loads(utterances)
         except JSONDecodeError:
-            # Harmful content case
+            # Harmful content case:
             if PII_ENABLED:
-                # Clean up PII memory
+                # Clean up PII memory:
                 pii_redacter.remove(id=chat_id)
             return ['I am unable to respond or participate in this conversation.']
 
