@@ -64,6 +64,3 @@ else
     echo "Unknown APP_MODE: $APP_MODE"
     exit 1
 fi
-
-# Run the uvicorn server
-# python3 -m uvicorn app:app --host 0.0.0.0 --port 8000

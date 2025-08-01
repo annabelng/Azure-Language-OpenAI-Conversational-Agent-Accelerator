@@ -30,6 +30,7 @@ if not triage_agent_id:
     logging.error(error_msg)
     raise ValueError(error_msg)
 
+
 def create_triage_agent_router() -> Callable[[str, str, str], dict]:
     """
     Create triage agent router.
