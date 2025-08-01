@@ -55,12 +55,16 @@ PII_ENABLED = os.environ.get("PII_ENABLED", "false").lower() == "true"
 
 
 # Fallback function (RAG):
-def fallback_function(query: str, language: str, id: int) -> str:
+def fallback_function(
+    query: str,
+    language: str,
+    id: int
+) -> str:
     """
     Call RAG client for grounded chat completion.
     """
     if PII_ENABLED:
-        # Redact PII
+        # Redact PII:
         query = pii_redacter.redact(
             text=query,
             id=id,
@@ -98,9 +102,11 @@ def orchestrate_chat(message: str) -> list[str]:
         except JSONDecodeError:
             # Harmful content case
             if PII_ENABLED:
+                # Clean up PII memory
                 pii_redacter.remove(id=chat_id)
             return ['I am unable to respond or participate in this conversation.']
 
+    # Process each utterance:
     responses = []
     for query in utterances:
         if PII_ENABLED:
@@ -111,6 +117,7 @@ def orchestrate_chat(message: str) -> list[str]:
                 cache=True
             )
 
+        # Orchestrate:
         orchestration_response = orchestrator.orchestrate(
             message=query,
             id=chat_id
@@ -125,6 +132,7 @@ def orchestrate_chat(message: str) -> list[str]:
             intent = orchestration_response["result"]["intent"]
             entities = orchestration_response["result"]["entities"]
 
+            # Here, you may call external functions based on recognized intent:
             hooks_module = importlib.import_module("clu_hooks")
             hook_func = getattr(hooks_module, intent)
             response = hook_func(entities)
@@ -138,7 +146,7 @@ def orchestrate_chat(message: str) -> list[str]:
         responses.append(response)
 
     if PII_ENABLED:
-        # Clean up PII memory
+        # Clean up PII memory:
         pii_redacter.remove(id=chat_id)
 
     return responses
