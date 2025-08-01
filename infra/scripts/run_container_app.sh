@@ -57,9 +57,13 @@ echo "Launching the app based on the environment variable APP_MODE..."
 if [ "$APP_MODE" == "SEMANTIC_KERNEL" ]; then
     echo "Launching app with agents (semantic_kernel_app.py)..."
     python3 -m uvicorn semantic_kernel_app:app --host 0.0.0.0 --port 8000
-else if [ "$APP_MODE" == "CLASSIC" ]; then
+elif [ "$APP_MODE" == "CLASSIC" ]; then
     echo "Launching non-agent classic app (classic_app.py)..."
     python3 -m uvicorn classic_app:app --host 0.0.0.0 --port 8000
+else
+    echo "Unknown APP_MODE: $APP_MODE"
+    exit 1
+fi
 
 # Run the uvicorn server
 # python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
