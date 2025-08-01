@@ -1,13 +1,21 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+import os
 """
 Contoso-Outdoors example function hooks for each CLU intent:
 """
 
 
 def get_order_id(entities: list[dict]) -> str:
+    # for ent in entities:
+    #     if ent["category"] == "OrderId":
+    #         return ent["text"]
+    # return None
+
+    triage_agent = os.environ.get("ROUTER_TYPE") == "TRIAGE_AGENT"
+    
     for ent in entities:
-        if ent["category"] == "OrderId":
+        if (triage_agent and ent.get("name") == "OrderId") or (ent.get("category") == "OrderId"):
             return ent["text"]
     return None
 

@@ -52,10 +52,11 @@ param max_agent_retry string = '5'
   'FUNCTION_CALLING'
   'TRIAGE_AGENT'
 ])
-param router_type string = 'TRIAGE_AGENT'
+param router_type string = 'ORCHESTRATION'
+param app_mode string = 'CLASSIC'
 param image string = 'mcr.microsoft.com/azure-cli'
 param port int = 8000
-param repository string = 'https://github.com/Azure-Samples/Azure-Language-OpenAI-Conversational-Agent-Accelerator'
+param repository string = 'https://github.com/annabelng/Azure-Language-OpenAI-Conversational-Agent-Accelerator'
  
 // Managed Identity:
 @description('Name of managed identity to use for Container Apps.')
@@ -250,6 +251,10 @@ resource container_instance 'Microsoft.ContainerInstance/containerGroups@2024-10
             {
               name: 'ROUTER_TYPE'
               value: router_type
+            }
+            {
+              name: 'APP_MODE'
+              value: app_mode
             }
             {
               name: 'DELETE_OLD_AGENTS'
