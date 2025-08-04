@@ -23,6 +23,7 @@ if os.path.exists(config_file):
 else:
     AGENT_IDS = {}
 
+# Use env variable for local testing
 # triage_agent_id = os.environ.get("TRIAGE_AGENT_ID")
 triage_agent_id = AGENT_IDS.get("TRIAGE_AGENT_ID")
 if not triage_agent_id:

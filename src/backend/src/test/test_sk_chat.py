@@ -9,13 +9,13 @@ import time
 from typing import Generator
 
 """
-This module contains test cases for the chat endpoint of the FastAPI application.
+This module contains test cases for the chat endpoint of the app with Semantic Kernel orchestration.
 It includes single-turn and multi-turn interactions with parameterized test cases.
 The tests are designed to validate the responses from the chat endpoint based on predefined scenarios.
 
 Launch this test suite using pytest:
 cd src/backend/src/
-pytest test/test_chat.py -s -v
+pytest test/test_sk_chat.py -s -v
 """
 
 # Test cases for the chat endpoint
@@ -285,7 +285,7 @@ def uvicorn_server() -> Generator:
     # Start server using python -m
     process = subprocess.Popen([
         sys.executable, "-m", "uvicorn",
-        "app:app",
+        "semantic_kernel_app:app",
         "--host", "127.0.0.1",
         "--port", "7000",
         "--reload"
