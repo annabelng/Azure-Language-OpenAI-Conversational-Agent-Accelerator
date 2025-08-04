@@ -20,7 +20,7 @@ pytest test/test_chat.py -s -v
 Test different routing strategies by setting the ROUTER_TYPE environment variable.
 For example:
 export ROUTER_TYPE=TRIAGE_AGENT
-pytest test/test_classic_chat.py -s -v
+pytest test/test_unified_chat.py -s -v
 
 Possible values for ROUTER_TYPE:
 - BYPASS
