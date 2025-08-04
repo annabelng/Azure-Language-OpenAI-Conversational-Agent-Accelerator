@@ -9,13 +9,9 @@ import time
 from typing import Generator
 
 """
-This module contains test cases for the chat endpoint of the app with classic orchestration.
+This module contains test cases for the chat endpoint of the app with unified orchestration.
 It includes single-turn and multi-turn interactions with parameterized test cases.
 The tests are designed to validate the responses from the chat endpoint based on predefined scenarios.
-
-Launch this test suite using pytest:
-cd src/backend/src/
-pytest test/test_chat.py -s -v
 
 Test different routing strategies by setting the ROUTER_TYPE environment variable.
 For example:
@@ -126,7 +122,7 @@ def uvicorn_server() -> Generator:
     # Start server using python -m
     process = subprocess.Popen([
         sys.executable, "-m", "uvicorn",
-        "classic_app:app",
+        "unified_app:app",
         "--host", "127.0.0.1",
         "--port", "7000",
         "--reload"

@@ -56,7 +56,7 @@ param router_type string = 'ORCHESTRATION'
 
 @allowed([
   'SEMANTIC_KERNEL'
-  'CLASSIC'
+  'UNIFIED'
 ])
 param app_mode string = 'SEMANTIC_KERNEL'
 param image string = 'mcr.microsoft.com/azure-cli'
