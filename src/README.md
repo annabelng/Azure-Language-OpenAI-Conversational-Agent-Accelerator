@@ -52,5 +52,9 @@ pip install -r requirements.txt
 cd src
 mv ../../frontend/dist .
 
-flask --app server run --host=0.0.0.0 --port 7000
+# To run semantic kernel orchestration:
+python3 -m uvicorn semantic_kernel_app:app --reload --host 127.0.0.1 --port 7000
+
+# To run unified orchestration:
+python3 -m uvicorn unified_app:app --reload --host 127.0.0.1 --port 7000
 ```
