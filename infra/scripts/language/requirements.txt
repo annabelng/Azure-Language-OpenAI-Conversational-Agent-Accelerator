@@ -1,4 +1,4 @@
 azure-identity
 azure-ai-language-conversations
 azure-ai-language-questionanswering
-azure-ai-agents
+azure-ai-agents==1.2.0b1
