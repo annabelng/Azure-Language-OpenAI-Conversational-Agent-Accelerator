@@ -11,6 +11,9 @@ SEARCH_INDEX_NAME=<search-service-index-name>
 
 LANGUAGE_ENDPOINT=<language-service-endpoint>
 
+TRANSLATOR_RESOURCE_ID=<translator-resource-id>
+TRANSLATOR_REGION=<translator-resource-region>
+
 CLU_PROJECT_NAME=<clu-project-name>
 CLU_DEPLOYMENT_NAME=<clu-deployment-name>
 CLU_CONFIDENCE_THRESHOLD=<clu-confidence-threshold> # float
@@ -28,9 +31,14 @@ PII_CATEGORIES=<pii-categories> # comma-separated
 PII_CONFIDENCE_THRESHOLD=<pii-confidence-threshold> # float
 
 ROUTER_TYPE=<router-type> # BYPASS | CLU | CQA | ORCHESTRATION | FUNCTION_CALLING
+APP_MODE=<app-mode > # SEMANTIC_KERNEL | UNIFIED
 
 USE_MI_AUTH=<use-managed-identity-auth> # bool, false for local runs (run az login beforehand)
 MI_CLIENT_ID=<mi-client-id>
+
+DELETE_OLD_AGENTS=<delete-old-agents> # bool
+MAX_AGENT_RETRY=<max-agent-retry>
+
 ```
 
 ## Running App
